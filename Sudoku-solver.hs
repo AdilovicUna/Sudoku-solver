@@ -1,35 +1,36 @@
 import System.IO
+import Data.Char
+
+type Puzzle = [[Int]]
 
 main :: IO()
 main = do
     file <- readFile "sudoku.txt"
-    writeFile  "result.txt" ""
-    solve (splitIntoPuzzles (lines file))
+    let output = solve (splitIntoPuzzles (lines file))
+    writeFile "result.txt" output
 
 splitIntoPuzzles :: [String] -> [[String]]
 splitIntoPuzzles [] = []
 splitIntoPuzzles file = 
-    let s = splitAt 10 file
-        onePuzzle = fst s
-        rest = snd s
+    let (onePuzzle, rest) = splitAt 10 file
     in onePuzzle : splitIntoPuzzles rest
 
-solve :: [[String]] -> IO()
-solve [] = return()
-solve ( (puzzleNum : puzzle) : rest) = do
-    appendFile  "result.txt"  (puzzleNum ++ ['\n'])
-    let result = solveOnePuzzle (convertToInt puzzle)
-    appendFile  "result.txt" (format result)
-    solve rest
+solve :: [[String]] -> String
+solve [] = ""
+solve (x : xs) = solve_h x ++ solve xs
 
-convertToInt :: [String] -> [[Int]]
-convertToInt [] = []
-convertToInt (row : puzzle) = (map (read . (:"")) row :: [Int]) : convertToInt puzzle
+solve_h :: [String] -> String
+solve_h [] = ""
+solve_h (puzzleNum : puzzle) = 
+    (puzzleNum ++ ['\n']) ++ format (solveOnePuzzle (convertToPuzzle puzzle))
 
-solveOnePuzzle :: [[Int]] -> [[Int]]
+convertToPuzzle :: [String] -> Puzzle
+convertToPuzzle = map (map digitToInt)
+
+solveOnePuzzle :: Puzzle -> Puzzle
 solveOnePuzzle [] = []
 solveOnePuzzle (row : puzzle) = (map (*0) row) : solveOnePuzzle  puzzle
 
-format :: [[Int]] -> String
-format [] = ""
-format (row : puzzle) = unwords (map show row) ++ ['\n'] ++ format puzzle
+format :: Puzzle -> String
+format rows = unlines (map formatRow rows)
+      where formatRow row = unwords (map show row)
