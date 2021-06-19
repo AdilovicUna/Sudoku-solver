@@ -50,7 +50,7 @@ convertToPuzzle = map (map digitToInt)
 -}
 format :: Puzzle -> String
 format rows = unlines (map formatRow rows)
-      where formatRow row = unwords (map show row)
+    where formatRow row = unwords (map show row)
 
 {- 
     main function for solving an individual Puzzle
@@ -70,8 +70,9 @@ mrv (x : xs) wholeGrid curr prev =
     let 
         newPrev = one_row_mrv x wholeGrid curr prev
         newCurr = (fst curr + 1, 0)
+        len = length (fst newPrev)
     in 
-        mrv xs wholeGrid newCurr newPrev
+        if len == 1 || len == 0 then newPrev else mrv xs wholeGrid newCurr newPrev
 
 {-
     Function that find the minimum value heuristic for one row
@@ -81,11 +82,19 @@ one_row_mrv [] _ _ prev = prev
 one_row_mrv (x : xs) wholeGrid curr (possiblePrev, (xPrev,yPrev)) = 
     let 
         next = (fst curr, snd curr + 1)
-        possibleCurr = getValues curr wholeGrid (transpose wholeGrid)
-    in
-        if x /= 0 || length possiblePrev <= length possibleCurr 
+    in    
+        if x /= 0 
             then one_row_mrv xs wholeGrid next (possiblePrev, (xPrev,yPrev))
-        else one_row_mrv xs wholeGrid next (possibleCurr, curr)
+        else 
+            do
+                if len == 1 || len == 0
+                    then (possibleCurr,(curr))
+                else if length possiblePrev <= len
+                    then one_row_mrv xs wholeGrid next (possiblePrev, (xPrev,yPrev))
+                else one_row_mrv xs wholeGrid next (possibleCurr, curr)
+            where 
+                possibleCurr = getValues curr wholeGrid (transpose wholeGrid)
+                len = length possibleCurr
 
 {-
     Function that returns all posible values for a specific position in the Puzzle
