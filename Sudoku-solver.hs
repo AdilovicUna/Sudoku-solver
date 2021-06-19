@@ -72,7 +72,7 @@ mrv (x : xs) wholeGrid curr prev =
         newCurr = (fst curr + 1, 0)
         len = length (fst newPrev)
     in 
-        if len == 1 || len == 0 then newPrev else mrv xs wholeGrid newCurr newPrev
+        if len == 0 then newPrev else mrv xs wholeGrid newCurr newPrev
 
 {-
     Function that find the minimum value heuristic for one row
@@ -87,7 +87,7 @@ one_row_mrv (x : xs) wholeGrid curr (possiblePrev, (xPrev,yPrev)) =
             then one_row_mrv xs wholeGrid next (possiblePrev, (xPrev,yPrev))
         else 
             do
-                if len == 1 || len == 0
+                if len == 0
                     then (possibleCurr,(curr))
                 else if length possiblePrev <= len
                     then one_row_mrv xs wholeGrid next (possiblePrev, (xPrev,yPrev))
