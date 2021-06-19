@@ -57,7 +57,6 @@ format rows = unlines (map formatRow rows)
 -}
 solveOnePuzzle :: Puzzle -> Puzzle
 solveOnePuzzle [] = []
-solveOnePuzzle (row : puzzle) = (map (*0) row) : solveOnePuzzle  puzzle
 
 {-
     Function for minimum value heuristic
