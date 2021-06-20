@@ -2,7 +2,6 @@ import System.IO
 import Data.Char
 import Data.List
 
-
 example = ["003020600", "900305001", "001806400", "008102900", "700000008", "006708200", "002609500", "800203009", "005010300"]
 
 type Puzzle = [[Int]]
@@ -67,17 +66,17 @@ solveOnePuzzle [] = []
     Returns a triple (num, values, pos), where 'num' is the minimum number of
     possible values, 'values' are the actual values, and 'pos' is a position.
 -}      
-mrv :: Puzzle -> (Int, [Int], Pos)
-mrv puzzle = minimum
+mrv :: Storage -> (Int, [Int], Pos)
+mrv storage = minimum
     [(length vals, vals, (i, j))
-     | i <- [0 .. length puzzle - 1], j <- [0 .. length puzzle - 1],
-       let vals = getValues (i, j) puzzle (transpose puzzle)]
-
+     | i <- [0 .. length storage - 1], j <- [0 .. length storage - 1],
+       let  (Empty values) = (storage !! i) !! j
+            vals = values]  
 
 store :: Puzzle -> Storage
 store puzzle = [store_h puzzle i | i <- [0 .. length puzzle - 1]]
 
-store_h :: Puzzle -> Int -> [Square]
+store_h :: Puzzle -> Int -> [Square]    
 store_h puzzle i =
     [ eVals
         | j <- [0 .. length puzzle - 1],
