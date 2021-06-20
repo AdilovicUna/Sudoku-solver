@@ -7,6 +7,9 @@ example = ["003020600", "900305001", "001806400", "008102900", "700000008", "006
 
 type Puzzle = [[Int]]
 type Pos = (Int,Int)
+type Storage = [[Square]]
+data Square = Filled Int | Empty [Int]
+    deriving (Show)
 
 main :: IO()
 main = do
@@ -69,6 +72,17 @@ mrv puzzle = minimum
     [(length vals, vals, (i, j))
      | i <- [0 .. length puzzle - 1], j <- [0 .. length puzzle - 1],
        let vals = getValues (i, j) puzzle (transpose puzzle)]
+
+
+store :: Puzzle -> Storage
+store puzzle = [store_h puzzle i | i <- [0 .. length puzzle - 1]]
+
+store_h :: Puzzle -> Int -> [Square]
+store_h puzzle i =
+    [ eVals
+        | j <- [0 .. length puzzle - 1],
+        let vals = (puzzle !! i) !! j
+            eVals = if vals /= 0 then Filled vals else Empty (getValues (i, j) puzzle (transpose puzzle)) ]
 
 {-
     Function that returns all posible values for a specific position in the Puzzle
