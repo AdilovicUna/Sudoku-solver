@@ -28,8 +28,7 @@ splitIntoPuzzles file =
     with the help of solve_h
 -}
 solve :: [[String]] -> String
-solve [] = ""
-solve (x : xs) = solve_h x ++ solve xs
+solve xs = concatMap solve_h xs
 
 {-
     Function that formats a solved sudoku grid
@@ -53,8 +52,8 @@ format rows = unlines (map formatRow rows)
     where formatRow row = unwords (map show row)
 
 {- 
-    main function for solving an individual Puzzle
--}
+    Main function for solving an individual Puzzle
+-}  
 solveOnePuzzle :: Puzzle -> Puzzle
 solveOnePuzzle [] = []
 
@@ -62,38 +61,14 @@ solveOnePuzzle [] = []
     Function for minimum value heuristic
     It will return list of possible values for the place in the puzzle
     with smallest amount of possible values and position of that place
--}
-mrv :: Puzzle -> Puzzle -> Pos -> ([Int],Pos) -> ([Int],Pos)
-mrv [] _ _ prev = prev
-mrv (x : xs) wholeGrid curr prev = 
-    let 
-        newPrev = one_row_mrv x wholeGrid curr prev
-        newCurr = (fst curr + 1, 0)
-        len = length (fst newPrev)
-    in 
-        if len == 0 then newPrev else mrv xs wholeGrid newCurr newPrev
-
-{-
-    Function that find the minimum value heuristic for one row
--}
-one_row_mrv :: [Int] -> Puzzle -> Pos -> ([Int],Pos) -> ([Int],Pos)
-one_row_mrv [] _ _ prev = prev
-one_row_mrv (x : xs) wholeGrid curr (possiblePrev, (xPrev,yPrev)) = 
-    let 
-        next = (fst curr, snd curr + 1)
-    in    
-        if x /= 0 
-            then one_row_mrv xs wholeGrid next (possiblePrev, (xPrev,yPrev))
-        else 
-            do
-                if len == 0
-                    then (possibleCurr,(curr))
-                else if length possiblePrev <= len
-                    then one_row_mrv xs wholeGrid next (possiblePrev, (xPrev,yPrev))
-                else one_row_mrv xs wholeGrid next (possibleCurr, curr)
-            where 
-                possibleCurr = getValues curr wholeGrid (transpose wholeGrid)
-                len = length possibleCurr
+    Returns a triple (num, values, pos), where 'num' is the minimum number of
+    possible values, 'values' are the actual values, and 'pos' is a position.
+-}      
+mrv :: Puzzle -> (Int, [Int], Pos)
+mrv puzzle = minimum
+    [(length vals, vals, (i, j))
+     | i <- [0 .. length puzzle - 1], j <- [0 .. length puzzle - 1],
+       let vals = getValues (i, j) puzzle (transpose puzzle)]
 
 {-
     Function that returns all posible values for a specific position in the Puzzle
@@ -104,36 +79,13 @@ getValues (x,y) wholeGrid wholeGridT=
         row = wholeGrid !! x
         column = wholeGridT !! y
         field = getField (x,y) wholeGrid
-    in  
-        do 
-           removeValues (removeValues (removeValues [1..9] row) column) field
-        where 
-            removeValues :: [Int] -> [Int] -> [Int]
-            removeValues xs ys = [x | x <- xs, not (elem x ys)]
+    in   
+        (\\) ( (\\) ( (\\) [1..9]  row) column) field
 
 {-
     Function that gets a a block in the Puzzle based on the position passed
 -}
 getField :: Pos -> Puzzle -> [Int]
-getField (x,y) wholeGrid = 
-    let 
-        rowX = wholeGrid !! x
-        rowXPlus1 = wholeGrid !! (x+1)
-        rowXMinus1 = wholeGrid !! (x-1)
-
-        slicedRows = case mod x 3 of
-            0 -> [rowX, rowXPlus1, wholeGrid !! (x+2)]
-            1 -> [rowXMinus1, rowX, rowXPlus1]
-            2 -> [wholeGrid !! (x-2), rowXMinus1, rowX]
-
-        slicedRowsT = transpose slicedRows
-
-        columnY = slicedRowsT !! y
-        columnYPlus1 = slicedRowsT !! (y+1)
-        columnYMinus1 = slicedRowsT !! (y-1)
-
-        slicedColumns = case mod y 3 of
-            0 -> [columnY, columnYPlus1, slicedRowsT !! (y+2)]
-            1 -> [columnYMinus1, columnY, columnYPlus1]
-            2 -> [slicedRowsT !! (y-2), columnYMinus1, columnY]
-    in concat slicedColumns
+getField (x, y) wholeGrid =
+    [val | (row, i) <- wholeGrid `zip` [0..], (val, j) <- row `zip` [0..],
+           i `div` 3 == x `div` 3 && j `div` 3 == y `div` 3]
