@@ -66,12 +66,12 @@ solveOnePuzzle [] = []
     Returns a triple (num, values, pos), where 'num' is the minimum number of
     possible values, 'values' are the actual values, and 'pos' is a position.
 -}      
-mrv :: Storage -> (Int, [Int], Pos)
-mrv storage = minimum
-    [(length vals, vals, (i, j))
-     | i <- [0 .. length storage - 1], j <- [0 .. length storage - 1],
-       let  (Empty values) = (storage !! i) !! j
-            vals = values]  
+mrv :: Storage -> Maybe (Int, [Int], Pos)
+mrv storage = 
+    let 
+        list = [(length vals, vals, (i, j)) | (row, i) <- storage `zip` [0 ..], (Empty vals, j) <- row `zip` [0 ..] ]
+    in
+        if length list == 0 then Nothing else Just (minimum list)
 
 store :: Puzzle -> Storage
 store puzzle = [store_h puzzle i | i <- [0 .. length puzzle - 1]]
