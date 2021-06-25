@@ -39,7 +39,12 @@ solve xs = concatMap solve_h xs
     and the formatted solution of the Puzzle
 -}
 solve_h :: [String] -> String
-solve_h (puzzleNum : puzzle) = (puzzleNum ++ ['\n']) ++ format (solveOnePuzzle (convertToPuzzle puzzle))
+solve_h (puzzleNum : puzzle) = 
+    let 
+        puzzle' = convertToPuzzle puzzle
+        storage = store puzzle'
+    in
+        (puzzleNum ++ ['\n']) ++ format (solveOnePuzzle puzzle' storage)
 
 {-
     Function that simply converts sudoku grid from string format into a Puzzle
@@ -71,10 +76,23 @@ allNonZero (x : xs) =
 {- 
     Main function for solving an individual Puzzle
 -}  
-solveOnePuzzle :: Puzzle -> Maybe Puzzle
-solveOnePuzzle puzzle
+solveOnePuzzle :: Puzzle -> Storage -> Maybe Puzzle
+solveOnePuzzle puzzle storage
     | allNonZero puzzle = Just puzzle
     | otherwise = Just puzzle
+        -- let 
+        --     (num, possible_vals, (i,j)) = mrv storage
+        --     loop :: [Int] -> Pos -> Puzzle -> Storage -> Maybe Puzzle
+        --     loop [] _ _ _ = Nothing
+        --     loop (x : xs) pos puzzle storage = 
+        --         let 
+        --             newPuzzle = fillValue puzzle (x,pos)
+        --             newStorage = updateStorage storage (x,pos)
+        --         in solveOnePuzzle newPuzzle newStorage
+        -- in loop possible_vals (i,j) puzzle storage
+        
+
+            
 
 {-
     Function for minimum value heuristic
@@ -109,11 +127,31 @@ store_h puzzle i =
             eVals = if vals /= 0 then Filled vals else Empty (getValues (i, j) puzzle (transpose puzzle)) ]
 
 {-
+    Function that goes through each row of the puzzle 
+    and fills the new value with the help of fillValue_h
+-}
+fillValue :: Puzzle -> (Int, Pos) -> Puzzle
+fillValue puzzle v = [fillValue_h puzzle i v | i <- [0 .. length puzzle - 1]]
+
+{-
+    Function that copies all previous values to the new puzzle
+    when it finds the value on the position (i,j)
+    it excahnges it previous value with a new one
+-}
+fillValue_h :: Puzzle -> Int -> (Int, Pos) -> [Int] 
+fillValue_h puzzle i' (val,(i,j)) = [if i' == i && j' == j then val else val'
+                                |   j' <-  [0 .. length puzzle - 1], let val' = (puzzle !! i') !! j']
+
+{-
     Function that updates storage when one value is filled
 -}
 updateStorage :: Storage -> (Int, Pos) -> Storage
-updateStorage storage (val,(i,j)) = storage
-    
+updateStorage storage v = [updateStorage_h storage i v | i <- [0 .. length storage - 1]]
+
+updateStorage_h :: Storage -> Int -> (Int, Pos) -> [Square] 
+updateStorage_h storage i' (val,(i,j)) = [if i' == i && j' == j then Filled val else val'
+                                |   j' <-  [0 .. length storage - 1], let val' = (storage !! i') !! j']
+
 
 {-
     Function that returns all posible values for a specific position in the Puzzle
