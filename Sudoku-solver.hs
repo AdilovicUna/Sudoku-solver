@@ -1,6 +1,7 @@
 import System.IO
 import Data.Char
 import Data.List
+import Data.Maybe
 
 example = ["003020600", "900305001", "001806400", "008102900", "700000008", "006708200", "002609500", "800203009", "005010300"]
 
@@ -49,15 +50,31 @@ convertToPuzzle = map (map digitToInt)
 {-
     Converts a Puzzle back to sudoku grid in string representation
 -}
-format :: Puzzle -> String
-format rows = unlines (map formatRow rows)
+format :: Maybe Puzzle -> String
+format rows
+    | rows == Nothing = "No solution possible"
+    | otherwise = unlines (map formatRow (fromJust rows))
     where formatRow row = unwords (map show row)
+
+{-
+    Function that checkes if the puzzle is solved
+    (if there are any 0 values it will return false)
+-}
+allNonZero :: Puzzle -> Bool
+allNonZero [] = True
+allNonZero (x : xs) =
+    let 
+        (a,b) = partition (==0) x
+    in
+        length b == 0 && allNonZero xs
 
 {- 
     Main function for solving an individual Puzzle
 -}  
-solveOnePuzzle :: Puzzle -> Puzzle
-solveOnePuzzle [] = []
+solveOnePuzzle :: Puzzle -> Maybe Puzzle
+solveOnePuzzle puzzle
+    | allNonZero puzzle = Just puzzle
+    | otherwise = Just puzzle
 
 {-
     Function for minimum value heuristic
@@ -73,15 +90,30 @@ mrv storage =
     in
         if length list == 0 then Nothing else Just (minimum list)
 
+{- 
+    Function that goes through each row of the puzzle 
+    and stores it with the help of store_h
+-}
 store :: Puzzle -> Storage
 store puzzle = [store_h puzzle i | i <- [0 .. length puzzle - 1]]
 
+{-
+    Function that stores all possible values for every
+    variable in one row of the puzzle
+-}
 store_h :: Puzzle -> Int -> [Square]    
 store_h puzzle i =
     [ eVals
         | j <- [0 .. length puzzle - 1],
         let vals = (puzzle !! i) !! j
             eVals = if vals /= 0 then Filled vals else Empty (getValues (i, j) puzzle (transpose puzzle)) ]
+
+{-
+    Function that updates storage when one value is filled
+-}
+updateStorage :: Storage -> (Int, Pos) -> Storage
+updateStorage storage (val,(i,j)) = storage
+    
 
 {-
     Function that returns all posible values for a specific position in the Puzzle
