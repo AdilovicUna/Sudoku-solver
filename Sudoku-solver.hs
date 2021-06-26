@@ -79,20 +79,23 @@ allNonZero (x : xs) =
 solveOnePuzzle :: Puzzle -> Storage -> Maybe Puzzle
 solveOnePuzzle puzzle storage
     | allNonZero puzzle = Just puzzle
-    | otherwise = Just puzzle
-        -- let 
-        --     (num, possible_vals, (i,j)) = mrv storage
-        --     loop :: [Int] -> Pos -> Puzzle -> Storage -> Maybe Puzzle
-        --     loop [] _ _ _ = Nothing
-        --     loop (x : xs) pos puzzle storage = 
-        --         let 
-        --             newPuzzle = fillValue puzzle (x,pos)
-        --             newStorage = updateStorage storage (x,pos)
-        --         in solveOnePuzzle newPuzzle newStorage
-        -- in loop possible_vals (i,j) puzzle storage
-        
-
-            
+    | otherwise = 
+        let 
+            var = (mrv storage)
+            loop :: [Int] -> Pos -> Puzzle -> Storage -> Maybe Puzzle
+            loop [] _ _ _ = Nothing
+            loop (x : xs) pos puzzle storage = 
+                let 
+                    newPuzzle = fillValue puzzle (x,pos)
+                    newStorage = updateStorage storage (x,pos)
+                in solveOnePuzzle newPuzzle newStorage
+        in 
+            if var == Nothing then Nothing 
+            else 
+                let 
+                    (num, possible_vals, (i,j)) = fromJust var
+                in
+                    loop possible_vals (i,j) puzzle storage    
 
 {-
     Function for minimum value heuristic
@@ -144,24 +147,64 @@ fillValue_h puzzle i' (val,(i,j)) = [if i' == i && j' == j then val else val'
 
 {-
     Function that updates storage when one value is filled
+    with the help of updateStorage_h
 -}
 updateStorage :: Storage -> (Int, Pos) -> Storage
 updateStorage storage v = [updateStorage_h storage i v | i <- [0 .. length storage - 1]]
 
+{-
+    Function that updates one row of values in storage
+-}
 updateStorage_h :: Storage -> Int -> (Int, Pos) -> [Square] 
-updateStorage_h storage i' (val,(i,j)) = [if i' == i && j' == j then Filled val else val'
-                                |   j' <-  [0 .. length storage - 1], let val' = (storage !! i') !! j']
+updateStorage_h storage i' (val,(i,j)) = 
+    let 
+        fieldPos = getFieldPos (i,j)
+    in
+        [if i' == i && j' == j then Filled val else val' |   j' <-  [0 .. length storage - 1], 
+            let temp = (storage !! i') !! j'
+                val' =  if checkIfFilled temp then temp else if i == i' || j == j' || elem (i',j') fieldPos then remove val temp else temp]
 
+{-
+    Function that returnes True if Square is Filled
+-}
+checkIfFilled :: Square -> Bool
+checkIfFilled (Filled _) = True
+checkIfFilled (Empty _) = False
+
+{-
+    Function that returns positions of all neighbouring squares
+-}
+getFieldPos :: Pos -> [Pos]
+getFieldPos (i,j) = 
+    do
+        [(i',j') | i' <- checkPos i, j' <- checkPos j]
+    where 
+        checkPos :: Int -> [Int]
+        checkPos x = case x `mod` 3 of
+            0 -> [x,x+1,x+2]
+            1 -> [x-1,x,x+1]
+            2 -> [x-2,x-1,x]
+
+{-
+    Function that removes one element from an Empty Square
+    and if Empty xs contains only one element it turns it into Filled xs
+-}
+remove :: Int -> Square -> Square
+remove x (Empty xs) = 
+    let 
+        result = [x' | x' <- xs, x' /= x]
+    in 
+        if length result == 1 then Filled (result !! 0) else Empty result
 
 {-
     Function that returns all posible values for a specific position in the Puzzle
 -}
 getValues ::Pos -> Puzzle -> Puzzle -> [Int]
-getValues (x,y) wholeGrid wholeGridT= 
+getValues (i,j) wholeGrid wholeGridT= 
     let 
-        row = wholeGrid !! x
-        column = wholeGridT !! y
-        field = getField (x,y) wholeGrid
+        row = wholeGrid !! i
+        column = wholeGridT !! j
+        field = getField (i,j) wholeGrid
     in   
         (\\) ( (\\) ( (\\) [1..9]  row) column) field
 
@@ -169,6 +212,6 @@ getValues (x,y) wholeGrid wholeGridT=
     Function that gets a a block in the Puzzle based on the position passed
 -}
 getField :: Pos -> Puzzle -> [Int]
-getField (x, y) wholeGrid =
-    [val | (row, i) <- wholeGrid `zip` [0..], (val, j) <- row `zip` [0..],
-           i `div` 3 == x `div` 3 && j `div` 3 == y `div` 3]
+getField (i, j) wholeGrid =
+    [val | (row, i') <- wholeGrid `zip` [0..], (val, j') <- row `zip` [0..],
+           i' `div` 3 == i `div` 3 && j' `div` 3 == j `div` 3]
