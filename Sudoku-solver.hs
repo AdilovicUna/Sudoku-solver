@@ -83,7 +83,7 @@ solveOnePuzzle puzzle storage
         let 
             var = (mrv storage)
             loop :: [Int] -> Pos -> Puzzle -> Storage -> Maybe Puzzle
-            loop [] _ _ _ = Nothing
+            loop [] _ puzzle _ = Just puzzle
             loop (x : xs) pos puzzle storage = 
                 let 
                     newPuzzle = fillValue puzzle (x,pos)
@@ -187,14 +187,9 @@ getFieldPos (i,j) =
 
 {-
     Function that removes one element from an Empty Square
-    and if Empty xs contains only one element it turns it into Filled xs
 -}
 remove :: Int -> Square -> Square
-remove x (Empty xs) = 
-    let 
-        result = [x' | x' <- xs, x' /= x]
-    in 
-        if length result == 1 then Filled (result !! 0) else Empty result
+remove x (Empty xs) = Empty [x' | x' <- xs, x' /= x]
 
 {-
     Function that returns all posible values for a specific position in the Puzzle
