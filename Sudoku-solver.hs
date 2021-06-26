@@ -57,7 +57,7 @@ convertToPuzzle = map (map digitToInt)
 -}
 format :: Maybe Puzzle -> String
 format rows
-    | rows == Nothing = "No solution possible"
+    | rows == Nothing = "No solution possible \n"
     | otherwise = unlines (map formatRow (fromJust rows))
     where formatRow row = unwords (map show row)
 
