@@ -66,12 +66,7 @@ format rows
     (if there are any 0 values it will return false)
 -}
 allNonZero :: Puzzle -> Bool
-allNonZero [] = True
-allNonZero (x : xs) =
-    let 
-        (a,b) = partition (==0) x
-    in
-        length b == 0 && allNonZero xs
+allNonZero puzzle = all (/= 0) (concat puzzle)
 
 {- 
     Main function for solving an individual Puzzle
@@ -116,53 +111,53 @@ mrv storage =
     and stores it with the help of store_h
 -}
 store :: Puzzle -> Storage
-store puzzle = [store_h puzzle i | i <- [0 .. length puzzle - 1]]
+store puzzle = [store_h puzzle (i, row) | (i, row) <- [0 ..] `zip` puzzle]
 
 {-
     Function that stores all possible values for every
     variable in one row of the puzzle
 -}
-store_h :: Puzzle -> Int -> [Square]    
-store_h puzzle i =
+store_h :: Puzzle -> (Int,[Int]) -> [Square]    
+store_h puzzle (i,row) =
     [ eVals
-        | j <- [0 .. length puzzle - 1],
-        let vals = (puzzle !! i) !! j
-            eVals = if vals /= 0 then Filled vals else Empty (getValues (i, j) puzzle (transpose puzzle)) ]
+        | (vals, j) <- row `zip` [0..],
+        let eVals = if vals /= 0 then Filled vals else Empty (getValues (i, j) puzzle (transpose puzzle)) ]
 
 {-
     Function that goes through each row of the puzzle 
     and fills the new value with the help of fillValue_h
 -}
 fillValue :: Puzzle -> (Int, Pos) -> Puzzle
-fillValue puzzle v = [fillValue_h puzzle i v | i <- [0 .. length puzzle - 1]]
+fillValue puzzle v = [fillValue_h puzzle (i, row) v | (i, row) <- [0 ..] `zip` puzzle]
 
 {-
     Function that copies all previous values to the new puzzle
     when it finds the value on the position (i,j)
     it excahnges it previous value with a new one
 -}
-fillValue_h :: Puzzle -> Int -> (Int, Pos) -> [Int] 
-fillValue_h puzzle i' (val,(i,j)) = [if i' == i && j' == j then val else val'
-                                |   j' <-  [0 .. length puzzle - 1], let val' = (puzzle !! i') !! j']
+fillValue_h :: Puzzle -> (Int,[Int]) -> (Int, Pos) -> [Int] 
+fillValue_h puzzle (i',row) (val,(i,j)) = [if i' == i && j' == j then val else val'
+                                |  (val', j') <- row `zip` [0..]]
 
 {-
     Function that updates storage when one value is filled
     with the help of updateStorage_h
 -}
 updateStorage :: Storage -> (Int, Pos) -> Storage
-updateStorage storage v = [updateStorage_h storage i v | i <- [0 .. length storage - 1]]
+updateStorage storage v = [updateStorage_h storage (i, row) v | (i, row) <- [0 ..] `zip` storage]
 
 {-
     Function that updates one row of values in storage
 -}
-updateStorage_h :: Storage -> Int -> (Int, Pos) -> [Square] 
-updateStorage_h storage i' (val,(i,j)) = 
-    let 
-        fieldPos = getFieldPos (i,j)
-    in
-        [if i' == i && j' == j then Filled val else val' |   j' <-  [0 .. length storage - 1], 
-            let temp = (storage !! i') !! j'
-                val' =  if checkIfFilled temp then temp else if i == i' || j == j' || elem (i',j') fieldPos then remove val temp else temp]
+updateStorage_h :: Storage -> (Int,[Square]) -> (Int, Pos) -> [Square] 
+updateStorage_h storage (i', row) (val,(i,j)) = 
+    [if i' == i && j' == j then Filled val else val' |   (temp, j') <- row `zip` [0..], 
+        let 
+            val' =  if checkIfFilled temp 
+                        then temp 
+                    else if i == i' || j == j' || (i `div` 3, j `div` 3) == (i' `div` 3, j' `div` 3)
+                        then remove val temp 
+                    else temp]
 
 {-
     Function that returnes True if Square is Filled
@@ -172,24 +167,10 @@ checkIfFilled (Filled _) = True
 checkIfFilled (Empty _) = False
 
 {-
-    Function that returns positions of all neighbouring squares
--}
-getFieldPos :: Pos -> [Pos]
-getFieldPos (i,j) = 
-    do
-        [(i',j') | i' <- checkPos i, j' <- checkPos j]
-    where 
-        checkPos :: Int -> [Int]
-        checkPos x = case x `mod` 3 of
-            0 -> [x,x+1,x+2]
-            1 -> [x-1,x,x+1]
-            2 -> [x-2,x-1,x]
-
-{-
     Function that removes one element from an Empty Square
 -}
 remove :: Int -> Square -> Square
-remove x (Empty xs) = Empty [x' | x' <- xs, x' /= x]
+remove x (Empty xs) = Empty (delete x xs)
 
 {-
     Function that returns all posible values for a specific position in the Puzzle
