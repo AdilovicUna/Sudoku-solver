@@ -9,7 +9,10 @@ type Puzzle = [[Int]]
 type Pos = (Int,Int)
 type Storage = [[Square]]
 data Square = Filled Int | Empty [Int]
-    deriving (Show)
+
+instance Show Square where
+    show (Filled x) = show x
+    show (Empty x) = show x
 
 main :: IO()
 main = do
@@ -44,7 +47,7 @@ solve_h (puzzleNum : puzzle) =
         puzzle' = convertToPuzzle puzzle
         storage = store puzzle'
     in
-        (puzzleNum ++ ['\n']) ++ format (solveOnePuzzle puzzle' storage)
+        (puzzleNum ++ ['\n']) ++ format (solveOnePuzzle storage)
 
 {-
     Function that simply converts sudoku grid from string format into a Puzzle
@@ -53,44 +56,44 @@ convertToPuzzle :: [String] -> Puzzle
 convertToPuzzle = map (map digitToInt)
 
 {-
-    Converts a Puzzle back to sudoku grid in string representation
+    Converts Storage back to sudoku grid in string representation
 -}
-format :: Maybe Puzzle -> String
-format rows
-    | rows == Nothing = "No solution possible \n"
-    | otherwise = unlines (map formatRow (fromJust rows))
-    where formatRow row = unwords (map show row)
+format :: Maybe Storage -> String
+format rows = case rows of
+                Nothing -> "No solution possible \n"
+                Just row -> unlines (map formatRow (fromJust rows))
+            where formatRow row = unwords (map show row)
 
 {-
     Function that checkes if the puzzle is solved
     (if there are any 0 values it will return false)
 -}
-allNonZero :: Puzzle -> Bool
-allNonZero puzzle = all (/= 0) (concat puzzle)
+allFilled :: Storage -> Bool
+allFilled storage = all (checkIfFilled) (concat storage)
 
 {- 
-    Main function for solving an individual Puzzle
+    Main function for solving an individual sudoku grid
 -}  
-solveOnePuzzle :: Puzzle -> Storage -> Maybe Puzzle
-solveOnePuzzle puzzle storage
-    | allNonZero puzzle = Just puzzle
+solveOnePuzzle :: Storage -> Maybe Storage
+solveOnePuzzle storage
+    | allFilled storage = Just storage
     | otherwise = 
         let 
             var = (mrv storage)
-            loop :: [Int] -> Pos -> Puzzle -> Storage -> Maybe Puzzle
-            loop [] _ puzzle _ = Just puzzle
-            loop (x : xs) pos puzzle storage = 
+            loop :: [Int] -> Pos -> Storage -> Maybe Storage
+            loop [] _ storage = if allFilled storage then Just storage else Nothing
+            loop (x : xs) pos storage = 
                 let 
-                    newPuzzle = fillValue puzzle (x,pos)
                     newStorage = updateStorage storage (x,pos)
-                in solveOnePuzzle newPuzzle newStorage
+                    result = solveOnePuzzle newStorage
+                in 
+                    case result of
+                        Nothing -> loop xs pos storage
+                        Just result -> Just result
         in 
-            if var == Nothing then Nothing 
-            else 
-                let 
-                    (num, possible_vals, (i,j)) = fromJust var
-                in
-                    loop possible_vals (i,j) puzzle storage    
+            case var of
+                Nothing -> Nothing
+                Just (num, possible_vals, (i,j)) -> loop possible_vals (i,j) storage    
 
 {-
     Function for minimum value heuristic
@@ -172,7 +175,7 @@ checkIfFilled (Empty _) = False
 remove :: Int -> Square -> Square
 remove x (Empty xs) = Empty (delete x xs)
 
-{-
+{-  
     Function that returns all posible values for a specific position in the Puzzle
 -}
 getValues ::Pos -> Puzzle -> Puzzle -> [Int]
