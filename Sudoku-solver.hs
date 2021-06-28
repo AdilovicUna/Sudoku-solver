@@ -2,6 +2,7 @@ import System.IO
 import Data.Char
 import Data.List
 import Data.Maybe
+import Control.Applicative
 
 example = ["003020600", "900305001", "001806400", "008102900", "700000008", "006708200", "002609500", "800203009", "005010300"]
 
@@ -64,37 +65,26 @@ format rows = case rows of
                 Just row -> unlines (map formatRow (fromJust rows))
             where formatRow row = unwords (map show row)
 
-{-
-    Function that checkes if the puzzle is solved
-    (if there are any 0 values it will return false)
--}
-allFilled :: Storage -> Bool
-allFilled storage = all (checkIfFilled) (concat storage)
-
 {- 
     Main function for solving an individual sudoku grid
 -}  
 solveOnePuzzle :: Storage -> Maybe Storage
-solveOnePuzzle storage
-    | allFilled storage = Just storage
-    | otherwise = 
-        let 
-            var = (mrv storage)
+solveOnePuzzle storage =
+    let var = (mrv storage)
+    in
+        do 
+            case var of
+                Nothing -> Just storage
+                Just (num, possible_vals, (i,j)) -> loop possible_vals (i,j) storage    
+        where
             loop :: [Int] -> Pos -> Storage -> Maybe Storage
-            loop [] _ storage = if allFilled storage then Just storage else Nothing
+            loop [] _ _ = Nothing
             loop (x : xs) pos storage = 
                 let 
                     newStorage = updateStorage storage (x,pos)
                     result = solveOnePuzzle newStorage
                 in 
-                    case result of
-                        Nothing -> loop xs pos storage
-                        Just result -> Just result
-        in 
-            case var of
-                Nothing -> Nothing
-                Just (num, possible_vals, (i,j)) -> loop possible_vals (i,j) storage    
-
+                    result <|> loop xs pos storage
 {-
     Function for minimum value heuristic
     It will return list of possible values for the place in the puzzle
@@ -107,7 +97,7 @@ mrv storage =
     let 
         list = [(length vals, vals, (i, j)) | (row, i) <- storage `zip` [0 ..], (Empty vals, j) <- row `zip` [0 ..] ]
     in
-        if length list == 0 then Nothing else Just (minimum list)
+        if null list then Nothing else Just (minimum list)
 
 {- 
     Function that goes through each row of the puzzle 
